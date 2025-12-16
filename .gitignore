@@ -1,4 +1,8 @@
+# AI Studio bazen server.js oluşturuyor, prod'da istemiyoruz
 server.js
+
+
+
 
 # Logs
 logs

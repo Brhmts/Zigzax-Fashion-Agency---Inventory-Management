@@ -1,3 +1,4 @@
+
 export interface NavItem {
   label: string;
   id: string; // Changed from purely label based for logic
@@ -66,4 +67,55 @@ export interface ExchangeRate {
     date: string; // YYYY-MM-DD
     usd_try: number; // 1 USD = ? TRY
     usd_eur: number; // 1 USD = ? EUR
+}
+
+// New Types for Sales Invoice
+export interface Account {
+    id: number;
+    name: string;
+    code: string;
+    type: 'customer' | 'supplier';
+    currency: string;
+    taxId?: string;
+    address?: string;
+}
+
+export interface Product {
+    id: number;
+    name: string;
+    sku: string;
+    type: 'standard' | 'pack';
+    category: string;
+    data: {
+        basicInfo: any;
+        pricing: {
+            buyingPrice: number;
+            wholesalePrice: number;
+            retailPrice: number;
+            currency: string;
+        };
+        variants?: VariantMatrixItem[];
+        packDetails?: {
+            items: PackItem[];
+            totalStock: number;
+        };
+    };
+}
+
+export interface InvoiceItem {
+    id: string;
+    productId: number;
+    productName: string;
+    variantId: string; // "RED-S" or "PACK"
+    variantName: string; 
+    quantity: number;
+    
+    // Pricing
+    basePriceUsd: number; // Always keep the original USD price reference!
+    unitPrice: number; // The price in the Invoice Currency
+    
+    discountRate: number; // %
+    taxRate: number; // %
+    
+    total: number; // Net total (Price * Qty - Discount)
 }

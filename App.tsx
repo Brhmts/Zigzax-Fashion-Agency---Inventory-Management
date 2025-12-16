@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -6,6 +7,7 @@ import RevenueChart from './components/RevenueChart';
 import StockDistribution from './components/StockDistribution';
 import TransactionsTable from './components/TransactionsTable';
 import ProductAdd from './components/ProductAdd';
+import SalesInvoice from './components/SalesInvoice';
 import Settings from './components/Settings';
 import { STATS_DATA } from './constants';
 
@@ -17,6 +19,8 @@ const App: React.FC = () => {
     switch (currentView) {
         case 'add-product':
             return <ProductAdd />;
+        case 'sales':
+            return <SalesInvoice />;
         case 'settings':
             return <Settings />;
         case 'dashboard':
@@ -66,7 +70,7 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         <Header 
             onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} 
-            onNewTransactionClick={() => setCurrentView('add-product')}
+            onNewTransactionClick={() => setCurrentView('sales')}
         />
         
         <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10 scroll-smooth pb-20">

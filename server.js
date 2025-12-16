@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
@@ -34,15 +35,70 @@ db.serialize(() => {
   )`);
 
   // Exchange Rates Table
-  // Stores daily rates based on USD.
-  // usd_try: 1 USD = X TRY
-  // usd_eur: 1 USD = X EUR
   db.run(`CREATE TABLE IF NOT EXISTS exchange_rates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     date TEXT UNIQUE,
     usd_try REAL,
     usd_eur REAL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // Accounts (Cari) Table
+  db.run(`CREATE TABLE IF NOT EXISTS accounts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    code TEXT,
+    type TEXT,
+    currency TEXT DEFAULT 'USD',
+    tax_id TEXT,
+    address TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`, (err) => {
+      if (!err) {
+          // Seed dummy accounts if table is empty
+          db.get("SELECT count(*) as count FROM accounts", [], (err, row) => {
+              if (row && row.count === 0) {
+                  const stmt = db.prepare("INSERT INTO accounts (name, code, type, currency, address) VALUES (?, ?, ?, ?, ?)");
+                  stmt.run("Moda Butik A.Ş.", "C-001", "customer", "TRY", "İstanbul, Merter");
+                  stmt.run("Global Tekstil Ltd.", "C-002", "customer", "USD", "London, UK");
+                  stmt.run("Ahmet Yılmaz (Perakende)", "C-003", "customer", "TRY", "İstanbul, Kadıköy");
+                  stmt.run("Kumaş Dünyası", "S-001", "supplier", "USD", "Bursa, OSB");
+                  stmt.finalize();
+                  console.log("Örnek cari hesaplar eklendi.");
+              }
+          });
+      }
+  });
+
+  // Invoices Table
+  db.run(`CREATE TABLE IF NOT EXISTS invoices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id INTEGER,
+    date TEXT,
+    due_date TEXT,
+    warehouse TEXT,
+    currency TEXT,
+    exchange_rate REAL,
+    subtotal REAL,
+    discount_total REAL,
+    tax_total REAL,
+    transportation REAL,
+    grand_total REAL,
+    no_tax INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // Invoice Items Table
+  db.run(`CREATE TABLE IF NOT EXISTS invoice_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invoice_id INTEGER,
+    product_id INTEGER,
+    variant_id TEXT,
+    quantity INTEGER,
+    unit_price REAL,
+    discount_rate REAL,
+    tax_rate REAL,
+    total REAL
   )`);
 });
 
@@ -153,6 +209,48 @@ app.post('/api/rates', (req, res) => {
                 res.json({ message: "created", date, usd_try, usd_eur });
             });
         }
+    });
+});
+
+// --- ACCOUNTS & INVOICES ---
+
+// 7. Get Accounts
+app.get('/api/accounts', (req, res) => {
+    const sql = "SELECT * FROM accounts ORDER BY name ASC";
+    db.all(sql, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// 8. Create Invoice
+app.post('/api/invoices', (req, res) => {
+    const { 
+        accountId, date, dueDate, warehouse, currency, exchangeRate,
+        subtotal, discountTotal, taxTotal, transportation, grandTotal, noTax,
+        items 
+    } = req.body;
+
+    const sqlInvoice = `INSERT INTO invoices 
+        (account_id, date, due_date, warehouse, currency, exchange_rate, subtotal, discount_total, tax_total, transportation, grand_total, no_tax) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    
+    const paramsInvoice = [accountId, date, dueDate, warehouse, currency, exchangeRate, subtotal, discountTotal, taxTotal, transportation, grandTotal, noTax ? 1 : 0];
+
+    db.run(sqlInvoice, paramsInvoice, function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        const invoiceId = this.lastID;
+        const stmt = db.prepare(`INSERT INTO invoice_items 
+            (invoice_id, product_id, variant_id, quantity, unit_price, discount_rate, tax_rate, total) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+        
+        items.forEach(item => {
+            stmt.run(invoiceId, item.productId, item.variantId, item.quantity, item.unitPrice, item.discountRate, item.taxRate, item.total);
+        });
+        
+        stmt.finalize();
+        res.json({ message: "success", invoiceId });
     });
 });
 

@@ -1,0 +1,5 @@
+{
+  "name": "Zigzax Admin Panel",
+  "description": "A modern, responsive admin dashboard for Zigzax Fashion built with React, Tailwind CSS, and Recharts.",
+  "requestFramePermissions": []
+}

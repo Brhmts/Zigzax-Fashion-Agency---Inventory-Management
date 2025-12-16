@@ -59,3 +59,11 @@ export interface VariantMatrixItem {
   barcode: string;
   stock: number;
 }
+
+// New Type for Exchange Rates (Base USD)
+export interface ExchangeRate {
+    id: number;
+    date: string; // YYYY-MM-DD
+    usd_try: number; // 1 USD = ? TRY
+    usd_eur: number; // 1 USD = ? EUR
+}

@@ -6,6 +6,7 @@ import RevenueChart from './components/RevenueChart';
 import StockDistribution from './components/StockDistribution';
 import TransactionsTable from './components/TransactionsTable';
 import ProductAdd from './components/ProductAdd';
+import Settings from './components/Settings';
 import { STATS_DATA } from './constants';
 
 const App: React.FC = () => {
@@ -16,6 +17,8 @@ const App: React.FC = () => {
     switch (currentView) {
         case 'add-product':
             return <ProductAdd />;
+        case 'settings':
+            return <Settings />;
         case 'dashboard':
         default:
             return (

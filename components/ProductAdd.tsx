@@ -1,29 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { PackItem, VariantMatrixItem } from '../types';
-
-type CurrencyType = 'USD' | 'EUR' | 'TRY';
+import { getApiUrl } from '../config';
 
 const ProductAdd: React.FC = () => {
   const [productType, setProductType] = useState<'standard' | 'pack'>('standard');
   const [isLoading, setIsLoading] = useState(false);
   
-  // Exchange Rates State (Global simulation)
-  const [rates, setRates] = useState({
-    USD: 34.50,
-    EUR: 37.20,
-    TRY: 1.00
-  });
-
-  // Product Configuration
-  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyType>('USD');
-
   // Basic Info Inputs
   const [productName, setProductName] = useState('');
   const [category, setCategory] = useState('Gömlek');
   const [description, setDescription] = useState('');
   const [baseSku, setBaseSku] = useState('');
 
-  // Global Pricing (In Selected Currency)
+  // Global Pricing (ALWAYS IN USD)
   const [buyingPrice, setBuyingPrice] = useState(0);
   const [wholesalePrice, setWholesalePrice] = useState(0);
   const [retailPrice, setRetailPrice] = useState(0);
@@ -41,22 +30,6 @@ const ProductAdd: React.FC = () => {
   const [packBarcode, setPackBarcode] = useState('');
   const [packItems, setPackItems] = useState<PackItem[]>([]);
   const [packTotalStock, setPackTotalStock] = useState(0);
-
-  // Helper: Get Currency Symbol
-  const getSymbol = (curr: CurrencyType) => {
-    switch(curr) {
-        case 'USD': return '$';
-        case 'EUR': return '€';
-        case 'TRY': return '₺';
-        default: return '';
-    }
-  };
-
-  // Helper: Calculate TL Equivalent
-  const calculateTL = (price: number) => {
-    if (selectedCurrency === 'TRY') return price;
-    return price * rates[selectedCurrency];
-  };
 
   // Re-generate combinations
   useEffect(() => {
@@ -143,11 +116,10 @@ const ProductAdd: React.FC = () => {
     }
 
     const pricingPayload = {
-        currency: selectedCurrency,
+        currency: 'USD', // Hardcoded as requested
         buyingPrice,
         wholesalePrice,
-        retailPrice,
-        ratesSnapshot: rates // Store the rates at the time of creation
+        retailPrice
     };
 
     let payload: any = {};
@@ -199,7 +171,7 @@ const ProductAdd: React.FC = () => {
     // API CALL
     try {
         setIsLoading(true);
-        const response = await fetch('http://localhost:3001/api/products', {
+        const response = await fetch(getApiUrl('/products'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -216,7 +188,6 @@ const ProductAdd: React.FC = () => {
         console.log("Server Response:", result);
         
         alert(`Başarılı! Ürün ID: ${result.data.id} olarak veritabanına kaydedildi.`);
-        
         // Optional: Reset form here
     } catch (error: any) {
         console.error("Save Error:", error);
@@ -231,52 +202,12 @@ const ProductAdd: React.FC = () => {
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full pb-20">
       
-      {/* Top Bar: Title & Rates Widget */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-            <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-text-secondary transition-colors">
-                <span className="material-symbols-outlined">arrow_back</span>
-            </button>
-            <h2 className="text-2xl font-bold text-text-main dark:text-white">Yeni Ürün Ekle</h2>
-        </div>
-
-        {/* Global Currency Settings Widget */}
-        <div className="bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-sm flex flex-col sm:flex-row items-center gap-4">
-            <div className="flex items-center gap-2 text-text-secondary text-sm font-bold uppercase tracking-wider border-b sm:border-b-0 sm:border-r border-gray-200 dark:border-gray-700 pb-2 sm:pb-0 sm:pr-4">
-                <span className="material-symbols-outlined text-primary">currency_exchange</span>
-                Günlük Kurlar
-            </div>
-            
-            <div className="flex gap-4">
-                <div className="flex flex-col">
-                    <label className="text-[10px] text-text-secondary font-semibold">USD ($)</label>
-                    <div className="flex items-center gap-1">
-                        <input 
-                            type="number" 
-                            value={rates.USD}
-                            onChange={(e) => setRates({...rates, USD: Number(e.target.value)})}
-                            className="w-16 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm font-mono text-right focus:border-primary outline-none text-text-main dark:text-white"
-                        />
-                        <span className="text-xs font-bold text-text-secondary">₺</span>
-                    </div>
-                </div>
-                <div className="flex flex-col">
-                    <label className="text-[10px] text-text-secondary font-semibold">EUR (€)</label>
-                    <div className="flex items-center gap-1">
-                        <input 
-                            type="number" 
-                            value={rates.EUR}
-                            onChange={(e) => setRates({...rates, EUR: Number(e.target.value)})}
-                            className="w-16 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm font-mono text-right focus:border-primary outline-none text-text-main dark:text-white"
-                        />
-                        <span className="text-xs font-bold text-text-secondary">₺</span>
-                    </div>
-                </div>
-            </div>
-            <div className="text-xs text-text-secondary italic ml-2 hidden sm:block">
-                *Satışlarda kullanılacak<br/>baz kurlar.
-            </div>
-        </div>
+      {/* Top Bar: Title */}
+      <div className="flex items-center gap-3">
+        <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-text-secondary transition-colors">
+            <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h2 className="text-2xl font-bold text-text-main dark:text-white">Yeni Ürün Ekle</h2>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -344,7 +275,7 @@ const ProductAdd: React.FC = () => {
                 </div>
             </div>
 
-            {/* Pricing Card (Multi-Currency) */}
+            {/* Pricing Card (USD Only) */}
             <div className="bg-surface-light dark:bg-surface-dark p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 transition-all">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-bold text-text-main dark:text-white flex items-center gap-2">
@@ -352,31 +283,18 @@ const ProductAdd: React.FC = () => {
                         Fiyatlandırma
                     </h3>
                     
-                    {/* Currency Selector */}
-                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 p-1 rounded-lg border border-gray-200 dark:border-gray-700">
-                        {(['USD', 'EUR', 'TRY'] as CurrencyType[]).map((curr) => (
-                            <button
-                                key={curr}
-                                onClick={() => setSelectedCurrency(curr)}
-                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all ${
-                                    selectedCurrency === curr 
-                                    ? 'bg-white dark:bg-gray-800 text-primary shadow-sm border border-gray-200 dark:border-gray-700' 
-                                    : 'text-text-secondary hover:text-text-main dark:hover:text-white'
-                                }`}
-                            >
-                                {curr} {getSymbol(curr)}
-                            </button>
-                        ))}
+                    <div className="px-3 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded text-xs font-bold border border-green-100 dark:border-green-800">
+                        Base Currency: USD ($)
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="flex flex-col gap-2">
                         <label className="text-sm font-semibold text-text-secondary dark:text-gray-400">
-                            Alış Fiyatı ({getSymbol(selectedCurrency)})
+                            Alış Fiyatı ($)
                         </label>
                         <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">{getSymbol(selectedCurrency)}</span>
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
                             <input 
                                 type="number" 
                                 value={buyingPrice === 0 ? '' : buyingPrice}
@@ -385,19 +303,14 @@ const ProductAdd: React.FC = () => {
                                 placeholder="0.00" 
                             />
                         </div>
-                        {selectedCurrency !== 'TRY' && (
-                            <div className="text-xs text-text-secondary text-right">
-                                ≈ {calculateTL(buyingPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
-                            </div>
-                        )}
                     </div>
 
                     <div className="flex flex-col gap-2">
                         <label className="text-sm font-semibold text-text-secondary dark:text-gray-400">
-                            Toptan Satış ({getSymbol(selectedCurrency)})
+                            Toptan Satış ($)
                         </label>
                         <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">{getSymbol(selectedCurrency)}</span>
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
                             <input 
                                 type="number" 
                                 value={wholesalePrice === 0 ? '' : wholesalePrice}
@@ -406,19 +319,14 @@ const ProductAdd: React.FC = () => {
                                 placeholder="0.00" 
                             />
                         </div>
-                        {selectedCurrency !== 'TRY' && (
-                            <div className="text-xs text-text-secondary text-right">
-                                ≈ {calculateTL(wholesalePrice).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
-                            </div>
-                        )}
                     </div>
 
                     <div className="flex flex-col gap-2">
                         <label className="text-sm font-semibold text-text-secondary dark:text-gray-400">
-                            Perakende Satış ({getSymbol(selectedCurrency)})
+                            Perakende Satış ($)
                         </label>
                         <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">{getSymbol(selectedCurrency)}</span>
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
                             <input 
                                 type="number" 
                                 value={retailPrice === 0 ? '' : retailPrice}
@@ -427,11 +335,6 @@ const ProductAdd: React.FC = () => {
                                 placeholder="0.00" 
                             />
                         </div>
-                        {selectedCurrency !== 'TRY' && (
-                            <div className="text-xs text-text-secondary text-right font-medium text-green-600 dark:text-green-400">
-                                 ≈ {calculateTL(retailPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
@@ -722,17 +625,12 @@ const ProductAdd: React.FC = () => {
                     {/* Price Summary */}
                     <div className="flex justify-between items-center">
                         <span className="text-text-secondary">Para Birimi:</span>
-                        <span className="font-bold text-text-main dark:text-white">{selectedCurrency}</span>
+                        <span className="font-bold text-text-main dark:text-white">USD ($)</span>
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-text-secondary">Satış Fiyatı:</span>
                         <div className="text-right">
-                             <div className="font-bold text-lg text-primary">{getSymbol(selectedCurrency)}{retailPrice.toLocaleString()}</div>
-                             {selectedCurrency !== 'TRY' && (
-                                <div className="text-xs text-gray-500">
-                                    ≈ {calculateTL(retailPrice).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} ₺
-                                </div>
-                             )}
+                             <div className="font-bold text-lg text-primary">${retailPrice.toLocaleString()}</div>
                         </div>
                     </div>
                 </div>
